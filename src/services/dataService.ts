@@ -30,6 +30,7 @@ import {
   Payment,
   Product,
   Sale,
+  ShopSettings,
   Supplier,
 } from "@/models";
 import { preciseAdd, preciseSubtract, preciseMultiply } from "@/lib/currency";
@@ -96,7 +97,7 @@ function ensureDB(): DatabaseSchema {
     customFields: [],
     productPosts: [],
     settings: {
-      shopName: "Dilshad Mobile Parts",
+      shopName: "",
       shopLogo: "",
       theme: "sky",
       address: "Shop # 12, Basement, Mobile City Plaza, Saddar, Karachi",
@@ -2251,23 +2252,87 @@ export async function deleteProductPost(id: string): Promise<boolean> {
 // ==========================================
 // SETTINGS & BACKUP / RESTORE
 // ==========================================
-export async function getShopSettings(): Promise<IShopSettings> {
+function applySettingsDefaults(settings: IShopSettings): IShopSettings {
+  settings.timeZone ||= "Asia/Karachi";
+  settings.theme ||= "sky";
+  settings.shopName = (settings.shopName || "").trim();
+  return settings;
+}
+
+async function syncShopSettingsFromMongo(): Promise<IShopSettings> {
   const db = ensureDB();
-  db.settings.timeZone ||= "Asia/Karachi";
-  db.settings.theme ||= "sky";
+  applySettingsDefaults(db.settings);
+  const mongo = await connectDB();
+  if (!mongo) return db.settings;
+
+  const existing = await ShopSettings.findOne({}).lean();
+  if (!existing) {
+    await ShopSettings.create({
+      ...db.settings,
+      createdAt: db.settings.createdAt ? new Date(db.settings.createdAt) : new Date(),
+      updatedAt: db.settings.updatedAt ? new Date(db.settings.updatedAt) : new Date(),
+    });
+    return db.settings;
+  }
+
+  const mongoUpdated = new Date((existing as { updatedAt?: Date | string }).updatedAt || 0).getTime();
+  const localUpdated = new Date(db.settings.updatedAt || 0).getTime();
+  const mongoName = String((existing as { shopName?: string }).shopName || "").trim();
+
+  // Saved settings (usually Mongo on the live site) win when they are newer
+  // or when the local file still has the old default shop name.
+  const localIsOldDefault = db.settings.shopName.trim().toLowerCase() === "dilshad choha";
+  if (mongoUpdated >= localUpdated || (localIsOldDefault && mongoName && mongoName.toLowerCase() !== "dilshad choha")) {
+    const { _id, createdAt, updatedAt, __v, ...fields } = existing as IShopSettings & {
+      _id?: unknown;
+      __v?: number;
+    };
+    db.settings = applySettingsDefaults({
+      ...db.settings,
+      ...fields,
+      shopName: mongoName || db.settings.shopName,
+      createdAt: createdAt ? new Date(createdAt).toISOString() : db.settings.createdAt,
+      updatedAt: updatedAt ? new Date(updatedAt).toISOString() : db.settings.updatedAt,
+    });
+    saveDB();
+  }
   return db.settings;
+}
+
+async function persistShopSettings(settings: IShopSettings) {
+  if (!(await connectDB())) return;
+  const { createdAt, updatedAt, ...fields } = settings;
+  await ShopSettings.findOneAndUpdate(
+    {},
+    {
+      $set: {
+        ...fields,
+        updatedAt: updatedAt ? new Date(updatedAt) : new Date(),
+      },
+      $setOnInsert: {
+        createdAt: createdAt ? new Date(createdAt) : new Date(),
+      },
+    },
+    { upsert: true, timestamps: false, new: true }
+  );
+}
+
+export async function getShopSettings(): Promise<IShopSettings> {
+  return syncShopSettingsFromMongo();
 }
 
 export async function updateShopSettings(updates: Partial<IShopSettings>): Promise<IShopSettings> {
   const db = ensureDB();
-  db.settings = {
+  db.settings = applySettingsDefaults({
     ...db.settings,
     ...updates,
+    shopName: (updates.shopName ?? db.settings.shopName).trim(),
     timeZone: updates.timeZone || db.settings.timeZone || "Asia/Karachi",
     theme: updates.theme || db.settings.theme || "sky",
     updatedAt: new Date().toISOString(),
-  };
+  });
   saveDB();
+  await persistShopSettings(db.settings);
   return db.settings;
 }
 

@@ -88,7 +88,7 @@ export function PendingPaymentsView({ customers, settings, onRefresh }: PendingP
 
   const handleSendReminder = (c: ICustomer) => {
     const text = encodeURIComponent(
-      `Assalam-o-Alaikum ${c.name}, this is a gentle reminder from Dilshad Mobile Parts regarding your outstanding Khata balance of ${formatPKR(
+      `Assalam-o-Alaikum ${c.name}, this is a gentle reminder from ${settings.shopName || "the shop"} regarding your outstanding Khata balance of ${formatPKR(
         c.outstandingBalance
       )}. Kindly arrange payment at your earliest convenience. Thank you!`
     );

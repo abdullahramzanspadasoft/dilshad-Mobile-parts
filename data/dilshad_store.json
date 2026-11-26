@@ -726,7 +726,7 @@
   ],
   "productPosts": [],
   "settings": {
-    "shopName": "Dilshad choha",
+    "shopName": "Dilshad menage",
     "shopLogo": "",
     "address": "lahore",
     "phone": "+92 300 2345678",
@@ -739,11 +739,30 @@
     "allowNegativeStock": false,
     "defaultPaymentMethod": "Cash",
     "createdAt": "2026-10-28T07:25:47.534Z",
-    "updatedAt": "2026-10-29T08:07:47.574Z",
+    "updatedAt": "2026-11-26T15:36:48.386Z",
     "timeZone": "Asia/Karachi",
     "theme": "sky"
   },
   "auditLogs": [
+    {
+      "_id": "id_mwxptvvh_4liyc",
+      "adminEmail": "dilshad@gmail.com",
+      "action": "SETTINGS_UPDATED",
+      "entityType": "ShopSettings",
+      "details": "Updated shop configuration and preferences",
+      "createdAt": "2026-11-26T15:36:53.405Z"
+    },
+    {
+      "_id": "id_mwxpd4hg_tqo92",
+      "adminEmail": "dilshad@gmail.com",
+      "action": "LOGIN_SUCCESS",
+      "entityType": "Admin",
+      "entityId": "id_mvrsimnw_rsz1x",
+      "details": "Successful admin login",
+      "ipAddress": "::1",
+      "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/158.0.0.0 Safari/537.36",
+      "createdAt": "2026-11-26T15:23:51.412Z"
+    },
     {
       "_id": "id_mwaixrlm_jzvix",
       "adminEmail": "dilshad@gmail.com",

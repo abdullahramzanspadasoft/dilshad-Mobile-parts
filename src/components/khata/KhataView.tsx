@@ -23,7 +23,6 @@ import {
   AlertCircle,
   Wallet,
   Eye,
-  Printer,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Modal } from "@/components/ui/Modal";

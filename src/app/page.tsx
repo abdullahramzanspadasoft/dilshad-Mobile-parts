@@ -105,6 +105,39 @@ function subscribeToTabNavigation(onStoreChange: () => void) {
   };
 }
 
+function RefreshSkeleton() {
+  return (
+    <div role="status" aria-label="Refreshing data" className="animate-pulse space-y-6">
+      <span className="sr-only">Refreshing data...</span>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        {Array.from({ length: 4 }, (_, index) => (
+          <div
+            key={index}
+            className="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900"
+          >
+            <div className="h-3 w-2/5 rounded bg-slate-200 dark:bg-slate-700" />
+            <div className="mt-4 h-8 w-3/5 rounded bg-slate-200 dark:bg-slate-700" />
+            <div className="mt-4 h-3 w-1/2 rounded bg-slate-100 dark:bg-slate-800" />
+          </div>
+        ))}
+      </div>
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900 lg:col-span-2">
+          <div className="h-4 w-1/3 rounded bg-slate-200 dark:bg-slate-700" />
+          <div className="mt-2 h-3 w-1/2 rounded bg-slate-100 dark:bg-slate-800" />
+          <div className="mt-6 h-64 rounded-xl bg-slate-100 dark:bg-slate-800" />
+        </div>
+        <div className="space-y-4 rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
+          <div className="h-4 w-2/3 rounded bg-slate-200 dark:bg-slate-700" />
+          {Array.from({ length: 4 }, (_, index) => (
+            <div key={index} className="h-12 rounded-lg bg-slate-100 dark:bg-slate-800" />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function ShopApp() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const [currentUser, setCurrentUser] = useState<any>(null);
@@ -134,7 +167,7 @@ export default function ShopApp() {
   const [categories, setCategories] = useState<any[]>([]);
   const [brands, setBrands] = useState<any[]>([]);
   const [shopSettings, setShopSettings] = useState<IShopSettings>({
-    shopName: "Dilshad Mobile Parts",
+    shopName: "",
     shopLogo: "",
     theme: "sky",
     address: "Shop # 12, Mobile Market, Saddar, Karachi",
@@ -155,6 +188,7 @@ export default function ShopApp() {
   const [loginPassword, setLoginPassword] = useState("");
   const [showLoginPassword, setShowLoginPassword] = useState(false);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
 
   // Forced Password Change Modal State
@@ -198,7 +232,7 @@ export default function ShopApp() {
     };
     const handleAppInstalled = () => {
       setInstallPrompt(null);
-      toast.success("Dilshad Mobile Parts was installed on your desktop.");
+      toast.success("App was installed on your desktop.");
     };
 
     window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
@@ -211,23 +245,25 @@ export default function ShopApp() {
   }, []);
 
   useEffect(() => {
-    document.title = `${shopSettings.shopName} — Complete Shop Management System`;
+    document.title = shopSettings.shopName
+      ? `${shopSettings.shopName} — Shop Management`
+      : "Shop Management";
   }, [shopSettings.shopName]);
 
   const fetchAllData = async (timeZone = shopSettings.timeZone || "Asia/Karachi") => {
     try {
-      const [dashRes, prodRes, custRes, supRes, purRes, saleRes, expRes, catRes, brandRes] =
-        await Promise.all([
-          fetch(`/api/dashboard?timeZone=${encodeURIComponent(timeZone)}`),
-          fetch("/api/products", { cache: "no-store" }),
-          fetch("/api/customers", { cache: "no-store" }),
-          fetch("/api/suppliers"),
-          fetch("/api/purchases"),
-          fetch("/api/sales", { cache: "no-store" }),
-          fetch("/api/expenses"),
-          fetch("/api/categories"),
-          fetch("/api/brands"),
-        ]);
+      const responses = await Promise.all([
+        fetch(`/api/dashboard?timeZone=${encodeURIComponent(timeZone)}`, { cache: "no-store" }),
+        fetch("/api/products", { cache: "no-store" }),
+        fetch("/api/customers", { cache: "no-store" }),
+        fetch("/api/suppliers", { cache: "no-store" }),
+        fetch("/api/purchases", { cache: "no-store" }),
+        fetch("/api/sales", { cache: "no-store" }),
+        fetch("/api/expenses", { cache: "no-store" }),
+        fetch("/api/categories", { cache: "no-store" }),
+        fetch("/api/brands", { cache: "no-store" }),
+      ]);
+      const [dashRes, prodRes, custRes, supRes, purRes, saleRes, expRes, catRes, brandRes] = responses;
 
       if (dashRes.ok) setDashboardStats(await dashRes.json());
       if (prodRes.ok) {
@@ -268,8 +304,25 @@ export default function ShopApp() {
         const data = await brandRes.json();
         setBrands(data.brands || []);
       }
+      return responses.every((response) => response.ok);
     } catch (e) {
       console.error("Error fetching data:", e);
+      return false;
+    }
+  };
+
+  const handleRefresh = async () => {
+    if (isRefreshing) return;
+    setIsRefreshing(true);
+    try {
+      const refreshed = await fetchAllData();
+      if (refreshed) {
+        toast.success("Data refreshed.");
+      } else {
+        toast.error("Some data could not be refreshed. Please try again.");
+      }
+    } finally {
+      setIsRefreshing(false);
     }
   };
 
@@ -286,7 +339,7 @@ export default function ShopApp() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Login failed");
 
-      toast.success("Welcome back to Dilshad Mobile Parts!");
+      toast.success(shopSettings.shopName ? `Welcome back to ${shopSettings.shopName}!` : "Welcome back!");
       setIsAuthenticated(true);
       setCurrentUser(data.user);
       if (data.user?.mustChangePassword) {
@@ -302,12 +355,12 @@ export default function ShopApp() {
 
   const handleInstallApp = async () => {
     if (window.matchMedia("(display-mode: standalone)").matches) {
-      toast.info("Dilshad Mobile Parts is already installed on this desktop.");
+      toast.info("This app is already installed on this desktop.");
       return;
     }
 
     if (!installPrompt) {
-      toast.info("Open your browser menu and choose Install Dilshad Mobile Parts.");
+      toast.info("Open your browser menu and choose Install app.");
       return;
     }
 
@@ -315,7 +368,7 @@ export default function ShopApp() {
       await installPrompt.prompt();
       const { outcome } = await installPrompt.userChoice;
       if (outcome === "accepted") {
-        toast.success("Dilshad Mobile Parts is being installed on your desktop.");
+        toast.success("The app is being installed on your desktop.");
       }
       setInstallPrompt(null);
     } catch (error) {
@@ -369,7 +422,7 @@ export default function ShopApp() {
     return (
       <div className="h-screen w-screen flex flex-col items-center justify-center bg-slate-900 text-white">
         <p className="text-sm font-semibold tracking-wide text-sky-400" role="status">
-          Loading Dilshad Mobile Parts...
+          Loading shop...
         </p>
       </div>
     );
@@ -628,17 +681,24 @@ export default function ShopApp() {
             )}
 
             <button
-              onClick={() => fetchAllData()}
-              className="p-2 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition"
-              title="Refresh Data"
+              onClick={() => void handleRefresh()}
+              disabled={isRefreshing}
+              className="p-2 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition disabled:cursor-not-allowed disabled:opacity-50"
+              title={isRefreshing ? "Refreshing data..." : "Refresh Data"}
+              aria-label={isRefreshing ? "Refreshing data" : "Refresh data"}
             >
-              <RefreshCw className="w-4 h-4" />
+              <RefreshCw className={`w-4 h-4${isRefreshing ? " animate-spin" : ""}`} />
             </button>
           </div>
         </header>
 
         {/* TAB CONTENT CONTAINER */}
-        <main className="flex-1 p-6 overflow-y-auto">
+        <main className="relative flex-1 overflow-y-auto p-6" aria-busy={isRefreshing}>
+          {isRefreshing && (
+            <div className="absolute inset-0 z-10 overflow-y-auto bg-slate-50 p-6 dark:bg-slate-950">
+              <RefreshSkeleton />
+            </div>
+          )}
           {/* TAB 1: DASHBOARD OVERVIEW */}
           {activeTab === "dashboard" && (
             <div className="space-y-6">
@@ -921,7 +981,9 @@ export default function ShopApp() {
               categories={categories}
               brands={brands}
               settings={shopSettings}
-              onRefresh={fetchAllData}
+              onRefresh={async () => {
+                await fetchAllData();
+              }}
             />
           )}
 
@@ -932,7 +994,9 @@ export default function ShopApp() {
               suppliers={suppliers}
               products={products}
               settings={shopSettings}
-              onRefresh={fetchAllData}
+              onRefresh={async () => {
+                await fetchAllData();
+              }}
               onSupplierAdded={(supplier) => {
                 setSuppliers((current) =>
                   current.some((existing) => existing._id === supplier._id)
@@ -962,7 +1026,9 @@ export default function ShopApp() {
               customers={customers}
               sales={sales}
               settings={shopSettings}
-              onRefresh={fetchAllData}
+              onRefresh={async () => {
+                await fetchAllData();
+              }}
             />
           )}
 
@@ -1008,7 +1074,7 @@ export default function ShopApp() {
               <ShieldCheck className="w-4 h-4" /> First-Time Login Protection
             </p>
             <p className="mt-1 text-[11px] leading-relaxed">
-              Your account currently uses default credentials. Enter a new, secure password to continue managing Dilshad Mobile Parts.
+              Your account currently uses default credentials. Enter a new, secure password to continue.
             </p>
           </div>
 

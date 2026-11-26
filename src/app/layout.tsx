@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Dilshad Mobile Parts — Complete Shop Management System",
-  description: "Modern, secure inventory, sales, customer khata, and business management system for Dilshad Mobile Parts.",
+  title: "Shop Management",
+  description: "Inventory, sales, customer khata, and shop management.",
 };
 
 export default function RootLayout({

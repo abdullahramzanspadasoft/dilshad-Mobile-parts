@@ -42,7 +42,7 @@ export function InvoicePrintModal({ isOpen, onClose, sale, settings }: InvoicePr
 
   const invoiceText = useMemo(() => {
     if (!sale) return "";
-    const shop = settings?.shopName || "Dilshad Mobile Parts";
+    const shop = settings?.shopName || "Shop";
     const lines = [
       `*${shop}*`,
       `Invoice: ${sale.invoiceNumber}`,
@@ -220,7 +220,7 @@ export function InvoicePrintModal({ isOpen, onClose, sale, settings }: InvoicePr
               ) : null}
               <div>
                 <h1 className="title text-2xl font-black text-sky-950 tracking-tight uppercase">
-                  {settings?.shopName || "Dilshad Mobile Parts"}
+                  {settings?.shopName || "Shop"}
                 </h1>
                 <p className="muted text-xs text-slate-600 mt-1 max-w-sm">
                   {settings?.address || "Shop # 12, Basement, Mobile City Plaza, Saddar, Karachi"}
@@ -363,7 +363,7 @@ export function InvoicePrintModal({ isOpen, onClose, sale, settings }: InvoicePr
                 "1. Return or exchange within 3 days with original seal.\n2. Burnt or physically broken parts carry no warranty."}
             </p>
             <p className="italic text-center text-slate-400 pt-3">
-              {settings?.invoiceFooterNotes || "Thank you for your business at Dilshad Mobile Parts!"}
+              {settings?.invoiceFooterNotes || "Thank you for your business!"}
             </p>
           </div>
         </div>

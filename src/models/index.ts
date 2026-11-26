@@ -318,9 +318,11 @@ const ProductPostSchema = new Schema(
 // --- 15. SHOP SETTINGS MODEL ---
 const ShopSettingsSchema = new Schema(
   {
-    shopName: { type: String, default: "Dilshad Mobile Parts" },
+    shopName: { type: String, default: "" },
     shopLogo: { type: String, default: "" },
-    address: { type: String, default: "Shop # 12, Mobile Market, Saddar, Karachi" },
+    theme: { type: String, default: "sky" },
+    address: { type: String, default: "" },
+    timeZone: { type: String, default: "Asia/Karachi" },
     phone: { type: String, default: "+92 300 1234567" },
     email: { type: String, default: "dilshad@gmail.com" },
     currencySymbol: { type: String, default: "Rs." },
